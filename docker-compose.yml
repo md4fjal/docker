@@ -1,0 +1,50 @@
+version: "3.9"
+
+services:
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: express-server
+    ports:
+      - "4000:4000"
+    env_file:
+      - ./server/.env
+    depends_on:
+      - mongodb
+      - redis
+    restart: always
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: react-client
+    ports:
+      - "5173:3000"
+    depends_on:
+      - server
+    restart: always
+
+  mongodb:
+    image: mongo:6
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    restart: always
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--save", "20", "1", "--loglevel", "warning"]
+    volumes:
+      - redis_data:/data
+    restart: always
+
+volumes:
+  mongo_data:
+  redis_data:
