@@ -30,7 +30,13 @@ sudo systemctl restart sshd
 
 Phase 2: Install Required Software
 
-Step 4: Install Node.js & npm
+Step 4: Install Node.js & npm & git
+# Install Git
+sudo apt install git -y
+
+# Verify Git installation
+git --version
+
 # Using NodeSource
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 sudo apt install -y nodejs
