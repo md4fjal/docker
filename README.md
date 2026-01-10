@@ -9,13 +9,6 @@ Step 2: Update System & Create New User
 # Update packages
 sudo apt update && sudo apt upgrade -y
 
-# Create new user (replace 'username' with your choice)
-adduser username
-usermod -aG sudo username
-
-# Switch to new user
-su - username
-
 Step 3: Basic Security Setup
 # Setup firewall
 sudo ufw allow OpenSSH
@@ -23,23 +16,19 @@ sudo ufw allow 80
 sudo ufw allow 443
 sudo ufw enable
 
-# Disable root SSH login (edit as needed)
-sudo nano /etc/ssh/sshd_config
-# Set: PermitRootLogin no
-sudo systemctl restart sshd
-
 Phase 2: Install Required Software
 
 Step 4: Install Node.js & npm & git
+
 # Install Git
 sudo apt install git -y
 
 # Verify Git installation
 git --version
 
-# Using NodeSource
+# Using NodeSource for Node.js 20.x
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-sudo apt install -y nodejs
+sudo apt install -y nodejs build-essential
 
 # Verify installation
 node --version
@@ -52,6 +41,26 @@ sudo systemctl enable nginx
 
 Step 6: Install PM2 (Process Manager)
 sudo npm install -g pm2
+
+Step 7: Install MongoDB
+
+# Import MongoDB public GPG key
+curl -fsSL https://pgp.mongodb.com/server-7.0.asc | sudo gpg -o /usr/share/keyrings/mongodb-server-7.0.gpg --dearmor
+
+# Create list file
+echo "deb [ signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu $(lsb_release -cs)/mongodb-org/7.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list
+
+# Update & install MongoDB
+sudo apt update
+sudo apt install -y mongodb-org
+
+# Start & enable MongoDB
+sudo systemctl start mongod
+sudo systemctl enable mongod
+
+# Verify
+sudo systemctl status mongod
+
 
 Step 7: Clone Your Repository
 # Navigate to home directory
