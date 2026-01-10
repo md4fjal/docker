@@ -195,3 +195,30 @@ pm2 restart next-app
 
 
 
+### React 
+
+npm install
+npm run build
+sudo apt update
+sudo apt install nginx -y
+sudo systemctl status nginx
+sudo nano /etc/nginx/sites-available/myapp
+sudo nano /etc/nginx/sites-available/myapp
+server {
+    listen 80;
+    server_name yourdomain.com www.yourdomain.com;
+
+    root /var/www/myapp/dist;
+    index index.html;
+
+    location / {
+        try_files $uri /index.html;
+    }
+}
+
+sudo ln -s /etc/nginx/sites-available/myapp /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl restart nginx
+sudo apt install certbot python3-certbot-nginx -y
+sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
+sudo certbot renew --dry-run
