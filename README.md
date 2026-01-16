@@ -222,3 +222,230 @@ sudo systemctl restart nginx
 sudo apt install certbot python3-certbot-nginx -y
 sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
 sudo certbot renew --dry-run
+
+###wordpress
+
+1️⃣ Upload files to VPS
+
+From your local machine:
+
+scp topgenuine.zip top_genuine_db.sql user@YOUR_VPS_IP:/home/user/
+
+✅ Check
+ls -lh
+
+
+You should see:
+
+topgenuine.zip
+top_genuine_db.sql
+
+2️⃣ Install required packages (PHP + MySQL)
+Install PHP (recommended for WordPress)
+sudo apt update
+sudo apt install -y php php-fpm php-mysql php-cli php-curl php-gd php-mbstring php-xml php-zip unzip
+
+Install MySQL
+sudo apt install -y mysql-server
+
+✅ Check
+php -v
+mysql --version
+systemctl status php*-fpm
+
+3️⃣ Create WordPress directory
+sudo mkdir -p /var/www/topgenuine
+sudo chown -R $USER:$USER /var/www/topgenuine
+
+
+Extract files:
+
+unzip topgenuine.zip -d /var/www/topgenuine
+
+✅ Check
+ls /var/www/topgenuine
+
+
+You must see:
+
+wp-admin
+wp-content
+wp-includes
+wp-config.php
+index.php
+
+
+(Your screenshot confirms this is correct ✔)
+
+4️⃣ Create MySQL database & user
+
+Login to MySQL:
+
+sudo mysql
+
+
+Run:
+
+CREATE DATABASE topgenuine_db DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE USER 'topgenuine_user'@'localhost' IDENTIFIED BY 'STRONG_PASSWORD';
+
+GRANT ALL PRIVILEGES ON topgenuine_db.* TO 'topgenuine_user'@'localhost';
+
+FLUSH PRIVILEGES;
+EXIT;
+
+5️⃣ Import database dump
+mysql -u topgenuine_user -p topgenuine_db < top_genuine_db.sql
+
+
+Enter the password.
+
+✅ Check
+mysql -u topgenuine_user -p
+
+USE topgenuine_db;
+SHOW TABLES;
+EXIT;
+
+
+You should see WordPress tables like:
+
+wp_posts
+wp_users
+wp_options
+
+6️⃣ Configure wp-config.php
+
+Edit:
+
+nano /var/www/topgenuine/wp-config.php
+
+
+Update these values:
+
+define('DB_NAME', 'topgenuine_db');
+define('DB_USER', 'topgenuine_user');
+define('DB_PASSWORD', 'STRONG_PASSWORD');
+define('DB_HOST', 'localhost');
+
+
+(Optional but recommended)
+
+define('FS_METHOD', 'direct');
+define('WP_MEMORY_LIMIT', '256M');
+
+
+Save and exit.
+
+✅ Check
+php -l /var/www/topgenuine/wp-config.php
+
+
+Must say:
+
+No syntax errors detected
+
+7️⃣ Fix permissions (CRITICAL)
+sudo chown -R www-data:www-data /var/www/topgenuine
+sudo find /var/www/topgenuine -type d -exec chmod 755 {} \;
+sudo find /var/www/topgenuine -type f -exec chmod 644 {} \;
+
+8️⃣ Create Nginx server block
+
+Create config:
+
+sudo nano /etc/nginx/sites-available/topgenuine
+
+
+Paste this FULL config:
+
+server {
+    listen 80;
+    server_name topgenuine.com www.topgenuine.com;
+
+    root /var/www/topgenuine;
+    index index.php index.html;
+
+    access_log /var/log/nginx/topgenuine.access.log;
+    error_log /var/log/nginx/topgenuine.error.log;
+
+    location / {
+        try_files $uri $uri/ /index.php?$args;
+    }
+
+    location ~ \.php$ {
+        include snippets/fastcgi-php.conf;
+        fastcgi_pass unix:/var/run/php/php-fpm.sock;
+    }
+
+    location ~* \.(jpg|jpeg|png|gif|css|js|ico|svg|woff|woff2|ttf|eot)$ {
+        expires 30d;
+        log_not_found off;
+    }
+
+    location ~ /\. {
+        deny all;
+    }
+}
+
+
+⚠ If PHP version differs:
+
+ls /var/run/php/
+
+
+Replace php-fpm.sock accordingly (e.g. php8.1-fpm.sock).
+
+9️⃣ Enable site & reload Nginx
+sudo ln -s /etc/nginx/sites-available/topgenuine /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl reload nginx
+
+✅ Check
+sudo systemctl status nginx
+
+🔟 Fix WordPress site URL (VERY IMPORTANT)
+
+If your site shows redirect issues, run:
+
+mysql -u topgenuine_user -p topgenuine_db
+
+SELECT option_name, option_value 
+FROM wp_options 
+WHERE option_name IN ('siteurl','home');
+
+
+Update if needed:
+
+UPDATE wp_options 
+SET option_value='https://topgenuine.com'
+WHERE option_name IN ('siteurl','home');
+EXIT;
+
+1️⃣1️⃣ Visit website 🎉
+
+Open browser:
+
+http://YOUR_DOMAIN
+
+
+You should see:
+
+Homepage ✔
+
+/wp-admin ✔
+
+Admin login:
+
+Credentials are from your imported database, not new install.
+
+1️⃣2️⃣ Enable SSL (Recommended)
+
+If domain is pointing to VPS:
+
+sudo apt install -y certbot python3-certbot-nginx
+sudo certbot --nginx -d topgenuine.com -d www.topgenuine.com
+
+✅ Check
+curl -I https://topgenuine.com
